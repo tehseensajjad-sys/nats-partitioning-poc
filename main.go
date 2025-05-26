@@ -124,7 +124,7 @@ func main() {
 		pcgroups.DeleteMembers(context.Background(), js, STREAM, CGROUP_NAME, []string{memberName})
 	}()
 
-	// This initiates the consumer
+	// This initiates the consumer, starts a goroutine
 	var p Payload
 	var imei string
 	var listOfImeis Set

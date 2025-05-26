@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -18,8 +19,33 @@ const (
 	CGROUP_NAME = "poc"
 )
 
-var memberName string = os.Getenv("HOSTNAME")
+var memberPrefix = "member"
 
+// Self explanatory
+// Strong suggestion to use pod-name as the member name
+// that way members are gaurenteed to be distinctly named
+// and tracked easily.
+// Neat little feature(Priority Groups added in NATS 2.11): Members of the same name form a priority group where only
+// one pod will consume and the other will remain in standby for HA
+func generateMemberName(currentMembersList []string) string {
+	return fmt.Sprintf("%s-%02d", memberPrefix, len(currentMembersList))
+}
+
+// Simple set add implementation to display a list of imeis
+// on the current member partition
+type Set struct {
+	set []string
+}
+
+func (s *Set) Add(str string) {
+	if slices.Contains(s.set, str) {
+		return
+	}
+	s.set = append(s.set, str)
+	slices.Sort(s.set)
+}
+
+// Payload to get imei from the json data
 type Payload struct {
 	Data struct {
 		ID  string `json:"id"`
@@ -57,17 +83,8 @@ type Payload struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-func eventHandler(msg jetstream.Msg) {
-	var p Payload
-	err := json.Unmarshal(msg.Data(), &p)
-	if err != nil {
-		log.Fatal("Failed to unmarshall payload")
-	}
-	fmt.Printf("subject=%s imei=%s\n", msg.Subject(), p.Data.ID)
-	msg.Ack()
-}
-
 func main() {
+	// Conn setup
 	opts, err := nats.NkeyOptionFromSeed("/Users/ma.afridi/.nats/dev-app.nk") // path to your .nk file
 	if err != nil {
 		log.Fatalf("Error reading NKEY file: %v", err)
@@ -84,39 +101,63 @@ func main() {
 		log.Fatalf("Error getting JetStream context: %v", err)
 	}
 
+	// Used internally by the library to create consumers
+	// AckWait and MaxAckPending allows member to endure
+	// some downtime when other members are added/removed
+	// and shuffling happens
 	templateConsumerConfig := jetstream.ConsumerConfig{
 		MaxAckPending: 1,
 		AckWait:       1 * time.Second,
-		AckPolicy:     jetstream.AckExplicitPolicy,
+		AckPolicy:     jetstream.AckExplicitPolicy, // Requirement for elastic consumer
 	}
 
-	fmt.Println("Running consumer")
+	currentMembers, err := pcgroups.ListElasticActiveMembers(context.Background(), js, STREAM, CGROUP_NAME)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	memberName := generateMemberName(currentMembers)
+	defer func() {
+		// Remove self from group upon exit
+		// as to not clog the members list
+		// e.g. pods names beign used as members
+		pcgroups.DeleteMembers(context.Background(), js, STREAM, CGROUP_NAME, []string{memberName})
+	}()
+
+	// This initiates the consumer
+	var p Payload
+	var imei string
+	var listOfImeis Set
 	consumerContext, err := pcgroups.ElasticConsume(
 		context.Background(),
 		js,
 		STREAM,
 		CGROUP_NAME,
 		memberName,
-		eventHandler,
+		func(msg jetstream.Msg) {
+			err := json.Unmarshal(msg.Data(), &p)
+			if err != nil {
+				log.Fatal("Failed to unmarshall payload")
+			}
+			imei = p.Data.ID
+			listOfImeis.Add(imei)
+			fmt.Printf("current_subject=%v, alloted=%s\n", msg.Subject(), strings.Join(listOfImeis.set, ", "))
+			msg.Ack()
+		},
 		templateConsumerConfig,
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer consumerContext.Stop()
+
+	// This is where the actual consumption starts
 	members, err := pcgroups.AddMembers(context.Background(), js, STREAM, CGROUP_NAME, []string{memberName})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println(members)
-
-	isMember, active, err := pcgroups.ElasticIsInMembershipAndActive(context.Background(), js, STREAM, CGROUP_NAME, memberName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("is member=%v, is-active=%v\n", isMember, active)
 
 	fmt.Println(<-consumerContext.Done())
 }

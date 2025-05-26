@@ -9,6 +9,10 @@
 - ```
   cd nats-partitioning-poc/
   ```
+- Add env variable pointing to your NATS Nkey file
+- ```
+  export NKEY_SEED=/path/to/nats.nk
+  ```
 - Start multiple consumer processes
 - ```
   go run main.go

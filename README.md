@@ -11,7 +11,7 @@
   ```
 - Add env variable pointing to your NATS Nkey file
 - ```
-  export NKEY_SEED=/path/to/nats.nk
+  export NKEY_SEED_PATH=/path/to/nats.nk
   ```
 - Start multiple consumer processes
 - ```

@@ -24,7 +24,7 @@
 
    1a. In this sample code im using our `iot` stream and partitioning on `avl.broadcast.*`
 
-2. Creation of an Elastic Consumer Group using the `cg` tool provided by the library
+2. Creation of an Elastic Consumer Group using the [`cg` tool provided by the library](https://github.com/synadia-io/orbit.go/tree/main/pcgroups/cg)
 
 ```
 cg elastic create iot poc 'avl.broadcast.*' 1

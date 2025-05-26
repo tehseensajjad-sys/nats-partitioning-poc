@@ -52,11 +52,11 @@ As of now with the current state of the library, above steps can be distributed 
 - Each consuming member is a seperate ephemeral **NATS Consumer**
 
 - Members are tracked using NATS Key Value Store (`nats kv ls`)
-- Two members with the same name form a Active Passive relation where one will consume messages and the other will wait indefinitely, upon the Active member to crash the passive one will take over and start consuming
+- Two members with the same name form a Active Passive relation where one will consume messages and the other will wait indefinitely, when the Active member stops or crashes the passive member will take over and start consuming
 
 ---
 
-Further documentation about the inner workings of partitioned consumer groups can be found at the official release repo
+Further documentation about the inner workings and implementation of partitioned consumer groups can be found at the official release repo
 https://github.com/synadia-io/orbit.go/tree/main/pcgroups
 
 To use the official library:

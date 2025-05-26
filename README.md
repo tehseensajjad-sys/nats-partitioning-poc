@@ -9,17 +9,13 @@
 - ```
   cd nats-partitioning-poc/
   ```
-- Add env variable pointing to your NATS Nkey file
-- ```
-  export NKEY_SEED_PATH=/path/to/nats.nk
-  ```
 - Start multiple consumer processes
 - ```
-  go run main.go
+  NKEY_SEED_PATH="$HOME/.nats/dev.nk" go run main.go
   ```
 - In a different terminal session
 - ```
-  go run main.go
+  NKEY_SEED_PATH="$HOME/.nats/dev.nk" go run main.go
   ```
 
 ### General Steps required to consume partitioned messages

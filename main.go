@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -85,7 +86,7 @@ type Payload struct {
 
 func main() {
 	// Conn setup
-	opts, err := nats.NkeyOptionFromSeed("/Users/ma.afridi/.nats/dev-app.nk") // path to your .nk file
+	opts, err := nats.NkeyOptionFromSeed(os.Getenv("NKEY_SEED_PATH")) // path to your .nk file
 	if err != nil {
 		log.Fatalf("Error reading NKEY file: %v", err)
 	}

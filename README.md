@@ -57,7 +57,10 @@ As of now with the current state of the library, above steps can be distributed 
 ---
 
 Further documentation about the inner workings and implementation of partitioned consumer groups can be found at the official release repo
-https://github.com/synadia-io/orbit.go/tree/main/pcgroups
+
+Go Package Docs: https://pkg.go.dev/github.com/synadia-io/orbit.go/pcgroups
+
+Github: https://github.com/synadia-io/orbit.go/tree/main/pcgroups
 
 To use the official library:
 
